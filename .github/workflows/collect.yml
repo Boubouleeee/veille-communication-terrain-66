@@ -1,0 +1,59 @@
+name: Collecte et publication de la veille
+
+on:
+  schedule:
+    - cron: "0 6 * * *"
+    - cron: "0 7,8 * * 1"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Action à lancer"
+        required: true
+        type: choice
+        options:
+          - collect
+          - weekly
+        default: collect
+
+permissions:
+  contents: write
+
+concurrency:
+  group: veille-terrain-66-data-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupérer le dépôt
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+      - name: Installer Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Collecter les flux publics
+        id: collect
+        if: github.event_name == 'schedule' && github.event.schedule == '0 6 * * *' || github.event_name == 'workflow_dispatch' && inputs.mode == 'collect'
+        run: python src/collect.py
+        continue-on-error: true
+      - name: Publier la note du lundi à 09:00 Europe/Paris
+        if: github.event_name == 'schedule' && github.event.schedule == '0 7,8 * * 1' || github.event_name == 'workflow_dispatch' && inputs.mode == 'weekly'
+        run: python src/collect.py --weekly-if-due
+      - name: Enregistrer les données et archives
+        if: always() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/ notes/latest.md notes/weekly/
+          if git diff --cached --quiet; then
+            echo "Aucune donnée modifiée."
+            exit 0
+          fi
+          git commit -m "chore: update veille data"
+          git push
+      - name: Signaler une erreur de collecte
+        if: steps.collect.outcome == 'failure'
+        run: exit 1

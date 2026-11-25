@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "minimum_score": 18,
+  "lookback_days": 90,
+  "user_agent": "VeilleTerrain66/1.0 (+https://github.com/Boubouleeee/veille-communication-terrain-66)",
+  "sources": [
+    {
+      "id": "service-public-entreprendre",
+      "name": "Service Public Entreprendre (DILA)",
+      "url": "https://www.service-public.gouv.fr/abonnements/rss/actu-actu-pro.rss",
+      "homepage": "https://entreprendre.service-public.gouv.fr/",
+      "description": "Actualités nationales officielles pour les professionnels et les entreprises; sujets emploi, activité économique et réglementation. Portée nationale, pas une source locale 66.",
+      "category": "emploi",
+      "location": "France",
+      "terms_url": "https://www.service-public.gouv.fr/P10008",
+      "terms_reviewed_at": "2026-11-25",
+      "terms_authorized": true,
+      "active": true
+    },
+    {
+      "id": "service-public-actualites",
+      "name": "Service Public — actualités (DILA)",
+      "url": "https://www.service-public.gouv.fr/abonnements/rss/actu-actualites-particuliers.rss",
+      "homepage": "https://www.service-public.gouv.fr/",
+      "description": "Fil officiel d’actualités de l’administration française. Veille nationale complémentaire, filtrée par pertinence; ne constitue pas un flux local des Pyrénées-Orientales.",
+      "category": "institutionnel",
+      "location": "France",
+      "terms_url": "https://www.service-public.gouv.fr/P10008",
+      "terms_reviewed_at": "2026-11-25",
+      "terms_authorized": true,
+      "active": true
+    }
+  ]
+}

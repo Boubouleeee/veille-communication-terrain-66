@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "snapshots": [
+    {
+      "date": "2026-11-25",
+      "total": 30,
+      "sourceCount": 2,
+      "categories": {
+        "emploi": 17,
+        "evenementiel": 2,
+        "institutionnel": 11
+      }
+    }
+  ]
+}

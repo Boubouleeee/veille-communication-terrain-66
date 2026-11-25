@@ -11,6 +11,7 @@ Application web statique de veille numérique consacrée à la communication ter
 - Favoris et pistes de prospection conservés dans le stockage local du navigateur; comparaison de trois signaux maximum.
 - Export CSV des signaux filtrés et de l’historique; impression navigateur et enregistrement PDF.
 - Historique journalier réel, comparaison des thèmes, notes générées et archives hebdomadaires immuables par semaine ISO.
+- Références des publications et des flux formatées en APA 7 (auteur institutionnel, date, titre, site et URL), dans l’interface, les synthèses et les exports CSV.
 - Collecte quotidienne, synthèse automatique le lundi à 09:00 heure de Paris et exécution manuelle depuis l’onglet **Actions**.
 - État de collecte visible. En cas d’échec de tous les flux, la dernière collecte réussie est conservée et signalée comme telle; aucune donnée de remplacement n’est générée.
 - Aucun compte tiers, clé secrète, service payant ou base de données requise.
@@ -45,6 +46,9 @@ Ajoutez un objet à `config/sources.json` :
 {
   "id": "identifiant-stable",
   "name": "Nom de l’éditeur",
+  "author": "Nom complet de l’auteur institutionnel",
+  "site_name": "Nom du site",
+  "apa_title": "Titre descriptif du flux [Flux RSS]",
   "url": "https://exemple.fr/flux-rss.xml",
   "homepage": "https://exemple.fr/",
   "description": "Brève description du périmètre du flux.",
@@ -57,7 +61,7 @@ Ajoutez un objet à `config/sources.json` :
 }
 ```
 
-`terms_authorized` est une attestation du mainteneur après vérification, pas une autorisation fournie par le programme. Les deux fils Service Public ci-dessus sont documentés par l’éditeur sur [sa page RSS](https://www.service-public.gouv.fr/P10008), qui indique que les actualités peuvent être rediffusées librement avec mention visible de `www.service-public.gouv.fr`. Cette attribution est rendue dans l’application via le nom de la source et le lien vers chaque publication. `terms_reviewed_at` doit être une date ISO `AAAA-MM-JJ`; revérifiez régulièrement les conditions. `category` accepte `marketing`, `evenementiel`, `institutionnel`, `emploi` ou `autre`. Une source inactive (`"active": false`) n’est pas récupérée. Les URL du flux et des conditions doivent être en HTTPS et ne peuvent pas viser `localhost` ou une IP privée.
+`author`, `site_name` et `apa_title` servent à générer les références APA 7; vérifiez le nom officiel de l’organisme et du site avant d’ajouter un flux. Les dates sans date de publication sont indiquées « s. d. ». `terms_authorized` est une attestation du mainteneur après vérification, pas une autorisation fournie par le programme. Les deux fils Service Public ci-dessus sont documentés par l’éditeur sur [sa page RSS](https://www.service-public.gouv.fr/P10008), qui indique que les actualités peuvent être rediffusées librement avec mention visible de `www.service-public.gouv.fr`. Cette attribution est rendue dans l’application via le nom de la source et le lien vers chaque publication. `terms_reviewed_at` doit être une date ISO `AAAA-MM-JJ`; revérifiez régulièrement les conditions. `category` accepte `marketing`, `evenementiel`, `institutionnel`, `emploi` ou `autre`. Une source inactive (`"active": false`) n’est pas récupérée. Les URL du flux et des conditions doivent être en HTTPS et ne peuvent pas viser `localhost` ou une IP privée.
 
 Les fils préconfigurés couvrent la France entière, pas spécifiquement le 66. Le score privilégie les mots-clés du secteur et le territoire lorsqu’ils sont présents; il ne transforme pas une actualité nationale en signal local. Pour une couverture locale plus riche, ajoutez ensuite les flux des collectivités ou éditeurs locaux après vérification de leur URL et de leurs conditions de réutilisation.
 

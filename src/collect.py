@@ -255,7 +255,10 @@ def score_entry(item: dict[str, str], source: dict[str, Any], now: datetime) -> 
 def validate_source(source: Any) -> dict[str, Any]:
     if not isinstance(source, dict):
         raise ValueError("Chaque source doit être un objet JSON.")
-    required = ("id", "name", "url", "category", "terms_url", "terms_reviewed_at")
+    required = (
+        "id", "name", "author", "site_name", "apa_title", "url",
+        "category", "terms_url", "terms_reviewed_at",
+    )
     missing = [key for key in required if not str(source.get(key, "")).strip()]
     if missing:
         raise ValueError(f"Champs manquants : {', '.join(missing)}.")
@@ -376,6 +379,8 @@ def make_entry(item: dict[str, str], source: dict[str, Any], now: datetime) -> d
         "collectedAt": now.isoformat(timespec="seconds"),
         "sourceId": source["id"],
         "sourceName": source["name"],
+        "sourceAuthor": source.get("author", source["name"]),
+        "sourceSiteName": source.get("site_name", ""),
         "category": category,
         "location": location,
         "score": score,
@@ -425,6 +430,31 @@ def markdown_escape(value: str) -> str:
     return value.replace("\\", "\\\\").replace("[", "\\[").replace("]", "\\]").replace("\n", " ")
 
 
+def apa_date(value: str | None) -> str:
+    if not value:
+        return "s. d."
+    try:
+        published = datetime.fromisoformat(value.replace("Z", "+00:00")).astimezone(PARIS)
+    except ValueError:
+        return "s. d."
+    month = (
+        "janvier", "février", "mars", "avril", "mai", "juin",
+        "juillet", "août", "septembre", "octobre", "novembre", "décembre",
+    )[published.month - 1]
+    return f"{published.year}, {published.day} {month}"
+
+
+def apa_reference(item: dict[str, Any]) -> str:
+    author = markdown_escape(str(item.get("sourceAuthor") or item.get("sourceName") or "Source publique"))
+    title = markdown_escape(str(item.get("title") or "Publication sans titre"))
+    site_name = markdown_escape(str(item.get("sourceSiteName") or ""))
+    url = str(item.get("url") or "")
+    site = f" {site_name}." if site_name and site_name.casefold() != author.casefold() else ""
+    link = f" [{url}]({url})" if url else ""
+    title_end = "" if title.rstrip().endswith((".", "?", "!")) else "."
+    return f"{author}. ({apa_date(item.get('publishedAt'))}). *{title}*{title_end}{site}{link}"
+
+
 def build_weekly_note(latest: dict[str, Any], now: datetime) -> str:
     start = now.date() - timedelta(days=now.weekday())
     end = start + timedelta(days=6)
@@ -450,21 +480,24 @@ def build_weekly_note(latest: dict[str, Any], now: datetime) -> str:
             "",
         ])
     else:
+        cited_entries = entries[:12]
         lines.extend(["## Signaux à examiner", ""])
-        for item in entries[:12]:
+        for item in cited_entries:
             title = markdown_escape(str(item.get("title", "Publication sans titre")))
             url = str(item.get("url", ""))
             summary = markdown_escape(str(item.get("summary", "")))
-            source = markdown_escape(str(item.get("sourceName", "Source publique")))
             score = int(item.get("score", 0))
-            lines.append(f"- [{title}]({url}) — {source}, pertinence indicative {score}/100.")
+            lines.append(f"- [{title}]({url}) — pertinence indicative {score}/100.")
             if summary:
                 lines.append(f"  - {summary}")
+        lines.append("")
+        lines.extend(["## Références (APA 7)", ""])
+        lines.extend(f"- {apa_reference(item)}" for item in cited_entries)
         lines.append("")
     lines.extend([
         "## Méthode et limites",
         "",
-        "Cette synthèse couvre uniquement les flux RSS/Atom publics explicitement configurés et les éléments qui dépassent le seuil de pertinence. Le score est un tri automatisé indicatif, pas une validation éditoriale. Consultez la publication source avant toute décision ou prise de contact. L’absence de résultat ne prouve pas l’absence d’activité.",
+        "Les références suivent le format APA 7 adapté en français : auteur institutionnel, date de publication, titre de la publication, nom du site et URL. « s. d. » indique qu’aucune date n’est fournie. Cette synthèse couvre uniquement les flux RSS/Atom publics explicitement configurés et les éléments qui dépassent le seuil de pertinence. Le score est un tri automatisé indicatif, pas une validation éditoriale. Consultez la publication source avant toute décision ou prise de contact. L’absence de résultat ne prouve pas l’absence d’activité.",
         "",
     ])
     return "\n".join(lines)

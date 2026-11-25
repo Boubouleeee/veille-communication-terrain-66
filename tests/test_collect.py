@@ -47,6 +47,9 @@ class ScoringAndConfigurationTests(unittest.TestCase):
         for source in config["sources"]:
             self.assertTrue(source["active"])
             self.assertTrue(source["terms_authorized"])
+            self.assertTrue(source["author"])
+            self.assertTrue(source["site_name"])
+            self.assertTrue(source["apa_title"])
             self.assertEqual(source["terms_url"], "https://www.service-public.gouv.fr/P10008")
             self.assertEqual(source["location"], "France")
             self.assertEqual(collect.validate_source(source), source)
@@ -66,6 +69,7 @@ class ScoringAndConfigurationTests(unittest.TestCase):
     def test_source_must_have_reviewed_public_terms_and_https_urls(self):
         source = {
             "id": "public-feed", "name": "Flux public", "url": "https://example.org/feed.xml",
+            "author": "Éditeur public", "site_name": "Site public", "apa_title": "Actualités [Flux RSS]",
             "category": "institutionnel", "terms_url": "https://example.org/terms",
             "terms_reviewed_at": "2026-11-25", "terms_authorized": True,
         }
@@ -99,6 +103,24 @@ class ScoringAndConfigurationTests(unittest.TestCase):
         self.assertEqual(first["id"], second["id"])
         self.assertEqual(first["url"], "https://example.org/article")
 
+    def test_apa_references_include_institution_date_title_site_and_url(self):
+        source = {
+            "id": "feed", "name": "Service Public", "author": "Direction de l’information légale et administrative",
+            "site_name": "Service Public Entreprendre",
+        }
+        entry = collect.make_entry({
+            "title": "Aide aux entreprises", "url": "https://example.org/a",
+            "summary": "", "publishedAt": "2026-11-25T08:00:00Z",
+        }, source, datetime(2026, 11, 25, tzinfo=timezone.utc))
+        reference = collect.apa_reference(entry)
+        self.assertIn("Direction de l’information légale et administrative. (2026, 25 novembre).", reference)
+        self.assertIn("*Aide aux entreprises*.", reference)
+        self.assertIn("Service Public Entreprendre.", reference)
+        self.assertIn("[https://example.org/a](https://example.org/a)", reference)
+        question_title = collect.apa_reference({**entry, "title": "Titre sous forme de question ?"})
+        self.assertIn("*Titre sous forme de question ?* Service Public Entreprendre.", question_title)
+        self.assertEqual(collect.apa_date(None), "s. d.")
+
 
 class PipelineTests(unittest.TestCase):
     def setUp(self):
@@ -123,6 +145,7 @@ class PipelineTests(unittest.TestCase):
         config = self.root / "config" / "sources.json"
         source = {
             "id": "feed", "name": "Flux public", "url": "https://example.org/feed.xml",
+            "author": "Éditeur public", "site_name": "Site public", "apa_title": "Actualités [Flux RSS]",
             "category": "institutionnel", "terms_url": "https://example.org/terms",
             "terms_reviewed_at": "2026-11-25", "terms_authorized": True,
         }
@@ -139,6 +162,7 @@ class PipelineTests(unittest.TestCase):
         config = self.root / "config" / "sources.json"
         source = {
             "id": "local-feed", "name": "Flux local", "url": "https://example.org/feed.xml",
+            "author": "Éditeur local", "site_name": "Site local", "apa_title": "Actualités locales [Flux RSS]",
             "category": "institutionnel", "location": "Pyrénées-Orientales",
             "terms_url": "https://example.org/terms", "terms_reviewed_at": "2026-11-25",
             "terms_authorized": True,
@@ -161,6 +185,7 @@ class PipelineTests(unittest.TestCase):
         config = self.root / "config" / "sources.json"
         common = {
             "category": "emploi", "location": "France",
+            "author": "Éditeur public", "site_name": "Site public", "apa_title": "Actualités [Flux RSS]",
             "terms_url": "https://example.org/terms", "terms_reviewed_at": "2026-11-25",
             "terms_authorized": True,
         }
@@ -198,6 +223,8 @@ class PipelineTests(unittest.TestCase):
         self.assertTrue(collect.publish_weekly(self.root, now))
         archive = self.root / "notes" / "weekly" / "2026-W48.md"
         original = archive.read_text(encoding="utf-8")
+        self.assertIn("## Références (APA 7)", original)
+        self.assertIn("Flux public. (2026, 25 novembre). *Publication réelle*.", original)
         latest = json.loads((self.root / "data" / "latest.json").read_text(encoding="utf-8"))
         latest["entries"][0]["title"] = "Titre modifié"
         (self.root / "data" / "latest.json").write_text(json.dumps(latest), encoding="utf-8")

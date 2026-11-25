@@ -65,6 +65,39 @@
     return new Intl.DateTimeFormat("fr-FR", { ...options, timeZone: "Europe/Paris" }).format(date);
   }
 
+  function apaDate(value) {
+    if (!value) return "s. d.";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "s. d.";
+    const parts = new Intl.DateTimeFormat("fr-FR", {
+      day: "numeric", month: "long", year: "numeric", timeZone: "Europe/Paris"
+    }).formatToParts(date);
+    const part = (type) => parts.find((item) => item.type === type)?.value;
+    return `${part("year")}, ${part("day")} ${part("month")}`;
+  }
+
+  function sourceFor(entry) {
+    return state.sources.find((source) => source.id === entry.sourceId) || {};
+  }
+
+  function apaReferenceHtml(entry) {
+    const source = sourceFor(entry);
+    const author = entry.sourceAuthor || source.author || entry.sourceName || "Source publique";
+    const siteName = entry.sourceSiteName || source.site_name || "";
+    const title = entry.title || "Publication sans titre";
+    const url = safeUrl(entry.url);
+    const titleEnd = /[.!?]$/.test(title.trim()) ? "" : ".";
+    return `${escapeHtml(author)}. (${escapeHtml(apaDate(entry.publishedAt))}). <em>${escapeHtml(title)}</em>${titleEnd}${siteName && siteName.toLocaleLowerCase("fr") !== author.toLocaleLowerCase("fr") ? ` ${escapeHtml(siteName)}.` : ""} <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(entry.url || "")}</a>`;
+  }
+
+  function apaSourceReferenceHtml(source) {
+    const author = source.author || source.name || "Source publique";
+    const siteName = source.site_name || "";
+    const title = source.apa_title || source.name || "Flux RSS/Atom";
+    const url = safeUrl(source.url);
+    return `${escapeHtml(author)}. (s. d.). <em>${escapeHtml(title)}</em>.${siteName && siteName.toLocaleLowerCase("fr") !== author.toLocaleLowerCase("fr") ? ` ${escapeHtml(siteName)}.` : ""} <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(source.url || "")}</a>`;
+  }
+
   function showToast(message) {
     const toast = $("#toast");
     toast.textContent = message;
@@ -179,7 +212,7 @@
           <button class="small-action ${favorite ? "is-active" : ""}" data-action="favorite" data-id="${id}" aria-pressed="${favorite}" title="${favorite ? "Retirer des favoris" : "Ajouter aux favoris"}">${favorite ? "★" : "☆"}<span class="visually-hidden">${favorite ? "Retirer des favoris" : "Ajouter aux favoris"}</span></button>
           <button class="small-action ${prospect ? "is-active" : ""}" data-action="prospect" data-id="${id}" aria-pressed="${prospect}" title="${prospect ? "Retirer des pistes" : "Marquer comme piste"}">✦<span class="visually-hidden">${prospect ? "Retirer des pistes" : "Marquer comme piste"}</span></button>
           <label class="compare-toggle"><input type="checkbox" data-action="compare" data-id="${id}" ${state.compared.includes(rawId) ? "checked" : ""}><span>Comparer</span></label>
-        </div></div></article>`;
+        </div></div><details class="apa-reference"><summary>Référence APA 7</summary><p>${apaReferenceHtml(entry)}</p></details></article>`;
     }).join("");
   }
 
@@ -266,16 +299,18 @@
       $("#source-list").innerHTML = '<div class="empty-state"><span class="empty-symbol" aria-hidden="true">◎</span><h3>Aucun flux configuré</h3><p>Le dépôt démarre sans source préremplie afin d’éviter la collecte non autorisée ou l’invention de données. Le fichier <code>config/sources.json</code> est la liste de référence.</p></div>';
       return;
     }
-    $("#source-list").innerHTML = active.map((source) => `<article class="source-card"><div class="source-avatar">${escapeHtml((source.name || "S").slice(0, 1).toLocaleUpperCase("fr"))}</div><div class="source-details"><div class="source-title-row"><h3>${escapeHtml(source.name || source.id)}</h3><span class="source-active"><i></i> Flux actif</span></div><p>${escapeHtml(source.description || "Flux public autorisé")}</p><div class="source-tags"><span>${escapeHtml(categories[source.category] || source.category || "Non classé")}</span><span>${escapeHtml(source.location || "Occitanie")}</span>${source.terms_url ? `<a href="${escapeHtml(safeUrl(source.terms_url))}" target="_blank" rel="noopener noreferrer">Conditions · vérifiées le ${escapeHtml(source.terms_reviewed_at || "date non renseignée")} ↗</a>` : ""}</div></div><a class="source-open" href="${escapeHtml(safeUrl(source.homepage || source.url))}" target="_blank" rel="noopener noreferrer" aria-label="Ouvrir ${escapeHtml(source.name || source.id)}">↗</a></article>`).join("");
+    $("#source-list").innerHTML = active.map((source) => `<article class="source-card"><div class="source-avatar">${escapeHtml((source.name || "S").slice(0, 1).toLocaleUpperCase("fr"))}</div><div class="source-details"><div class="source-title-row"><h3>${escapeHtml(source.name || source.id)}</h3><span class="source-active"><i></i> Flux actif</span></div><p>${escapeHtml(source.description || "Flux public autorisé")}</p><div class="source-tags"><span>${escapeHtml(categories[source.category] || source.category || "Non classé")}</span><span>${escapeHtml(source.location || "Occitanie")}</span>${source.terms_url ? `<a href="${escapeHtml(safeUrl(source.terms_url))}" target="_blank" rel="noopener noreferrer">Conditions · vérifiées le ${escapeHtml(source.terms_reviewed_at || "date non renseignée")} ↗</a>` : ""}</div><p class="apa-source-reference"><strong>Référence du flux · APA 7 :</strong> ${apaSourceReferenceHtml(source)}</p></div><a class="source-open" href="${escapeHtml(safeUrl(source.homepage || source.url))}" target="_blank" rel="noopener noreferrer" aria-label="Ouvrir ${escapeHtml(source.name || source.id)}">↗</a></article>`).join("");
   }
 
   function markdownInline(value) {
     const output = [];
-    const pattern = /\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g;
+    const pattern = /\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)|\*([^*]+)\*/g;
     let cursor = 0;
     for (const match of value.matchAll(pattern)) {
       output.push(escapeHtml(value.slice(cursor, match.index)));
-      output.push(`<a href="${escapeHtml(safeUrl(match[2]))}" target="_blank" rel="noopener noreferrer">${escapeHtml(match[1])}</a>`);
+      output.push(match[2]
+        ? `<a href="${escapeHtml(safeUrl(match[2]))}" target="_blank" rel="noopener noreferrer">${escapeHtml(match[1])}</a>`
+        : `<em>${escapeHtml(match[3])}</em>`);
       cursor = match.index + match[0].length;
     }
     output.push(escapeHtml(value.slice(cursor)));
@@ -350,15 +385,25 @@
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function exportCsv(rows, filename, columns = ["title", "sourceName", "category", "location", "publishedAt", "score", "url"]) {
+  function exportCsv(rows, filename, columns = ["title", "sourceName", "category", "location", "publishedAt", "score", "url", "apa7Reference"]) {
     if (!rows.length) { showToast("Aucun élément réel à exporter."); return; }
     const value = (cell) => {
       const raw = String(cell ?? "");
       const safe = /^[\s\x00-\x1f]*[=+\-@]/.test(raw) ? `'${raw}` : raw;
       return `"${safe.replace(/"/g, '""')}"`;
     };
-    const csv = `\uFEFF${columns.join(";")}\r\n${rows.map((row) => columns.map((column) => value(row[column])).join(";")).join("\r\n")}`;
+    const csv = `\uFEFF${columns.join(";")}\r\n${rows.map((row) => columns.map((column) => value(column === "apa7Reference" ? apaReferenceText(row) : row[column])).join(";")).join("\r\n")}`;
     download(csv, filename, "text/csv;charset=utf-8");
+  }
+
+  function apaReferenceText(entry) {
+    const source = sourceFor(entry);
+    const author = entry.sourceAuthor || source.author || entry.sourceName || "Source publique";
+    const siteName = entry.sourceSiteName || source.site_name || "";
+    const title = entry.title || "Publication sans titre";
+    const site = siteName && siteName.toLocaleLowerCase("fr") !== author.toLocaleLowerCase("fr") ? ` ${siteName}.` : "";
+    const titleEnd = /[.!?]$/.test(title.trim()) ? "" : ".";
+    return `${author}. (${apaDate(entry.publishedAt)}). ${title}${titleEnd}${site} ${entry.url || ""}`.trim();
   }
 
   function download(content, filename, type) {

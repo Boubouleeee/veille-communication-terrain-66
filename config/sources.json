@@ -7,6 +7,9 @@
     {
       "id": "service-public-entreprendre",
       "name": "Service Public Entreprendre (DILA)",
+      "author": "Direction de l’information légale et administrative",
+      "site_name": "Service Public Entreprendre",
+      "apa_title": "Actualités professionnelles et des entreprises [Flux RSS]",
       "url": "https://www.service-public.gouv.fr/abonnements/rss/actu-actu-pro.rss",
       "homepage": "https://entreprendre.service-public.gouv.fr/",
       "description": "Actualités nationales officielles pour les professionnels et les entreprises; sujets emploi, activité économique et réglementation. Portée nationale, pas une source locale 66.",
@@ -20,6 +23,9 @@
     {
       "id": "service-public-actualites",
       "name": "Service Public — actualités (DILA)",
+      "author": "Direction de l’information légale et administrative",
+      "site_name": "Service Public",
+      "apa_title": "Actualités générales de l’administration [Flux RSS]",
       "url": "https://www.service-public.gouv.fr/abonnements/rss/actu-actualites-particuliers.rss",
       "homepage": "https://www.service-public.gouv.fr/",
       "description": "Fil officiel d’actualités de l’administration française. Veille nationale complémentaire, filtrée par pertinence; ne constitue pas un flux local des Pyrénées-Orientales.",
